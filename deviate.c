@@ -633,6 +633,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	struct ifprop	ifprop;
 
 	dev->cpu.nrcpu     = cur->cpu.nrcpu;
+	dev->cpu.maxcpunr  = cur->cpu.maxcpunr;
 	dev->cpu.devint    = subcount(cur->cpu.devint, pre->cpu.devint);
 	dev->cpu.csw       = subcount(cur->cpu.csw,    pre->cpu.csw);
 	dev->cpu.nprocs    = subcount(cur->cpu.nprocs, pre->cpu.nprocs);
@@ -651,11 +652,14 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 	dev->cpu.all.instr = subcount(cur->cpu.all.instr, pre->cpu.all.instr);
 	dev->cpu.all.cycle = subcount(cur->cpu.all.cycle, pre->cpu.all.cycle);
 
-	for (i=0; i < dev->cpu.nrcpu; i++)
+	for (i=0; i <= dev->cpu.maxcpunr; i++)
 	{
+            if (cur->cpu.cpu[i].active)
+            {
 		count_t 	ticks;
 
 		dev->cpu.cpu[i].cpunr = cur->cpu.cpu[i].cpunr;
+		dev->cpu.cpu[i].active= cur->cpu.cpu[i].active;
 		dev->cpu.cpu[i].stime = subcount(cur->cpu.cpu[i].stime,
 					         pre->cpu.cpu[i].stime);
 		dev->cpu.cpu[i].utime = subcount(cur->cpu.cpu[i].utime,
@@ -694,6 +698,7 @@ deviatsyst(struct sstat *cur, struct sstat *pre, struct sstat *dev,
 					subcount(cur->cpu.cpu[i].freqcnt.ticks,
 					         pre->cpu.cpu[i].freqcnt.ticks)
 					       : cur->cpu.cpu[i].freqcnt.ticks;
+            }
 	}
 
 	dev->cpu.lavg1		= cur->cpu.lavg1;
@@ -1502,6 +1507,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 	{
 	   case 'c':	/* accumulate cpu-related counters */
 		tot->cpu.nrcpu      = new->cpu.nrcpu;
+		tot->cpu.maxcpunr   = new->cpu.maxcpunr;
 		tot->cpu.devint    += new->cpu.devint;
 		tot->cpu.csw       += new->cpu.csw;
 		tot->cpu.nprocs    += new->cpu.nprocs;
@@ -1522,9 +1528,12 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 		}
 		else
 		{
-			for (i=0; i < new->cpu.nrcpu; i++)
+			for (i=0; i <= new->cpu.maxcpunr; i++)
 			{
+                            if (new->cpu.cpu[i].active)
+                            {
 				tot->cpu.cpu[i].cpunr  = new->cpu.cpu[i].cpunr;
+				tot->cpu.cpu[i].active = new->cpu.cpu[i].active;
 				tot->cpu.cpu[i].stime += new->cpu.cpu[i].stime;
 				tot->cpu.cpu[i].utime += new->cpu.cpu[i].utime;
 				tot->cpu.cpu[i].ntime += new->cpu.cpu[i].ntime;
@@ -1534,6 +1543,7 @@ totalsyst(char category, struct sstat *new, struct sstat *tot)
 				tot->cpu.cpu[i].Stime += new->cpu.cpu[i].Stime;
 				tot->cpu.cpu[i].steal += new->cpu.cpu[i].steal;
 				tot->cpu.cpu[i].guest += new->cpu.cpu[i].guest;
+                            }
 			}
 		}
 

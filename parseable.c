@@ -326,10 +326,13 @@ print_CPU(char *hp, struct sstat *ss,
         int i;
 
         // calculate average clock frequency
-	for (i=0; i < ss->cpu.nrcpu; i++)
+	for (i=0; i <= ss->cpu.maxcpunr; i++)
         {
+            if (ss->cpu.cpu[i].active)
+            {
                 cnt    += ss->cpu.cpu[i].freqcnt.cnt;
                 ticks  += ss->cpu.cpu[i].freqcnt.ticks;
+            }
         }
         maxfreq = ss->cpu.cpu[0].freqcnt.maxfreq;
         calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
@@ -372,8 +375,10 @@ print_cpu(char *hp, struct sstat *ss,
         count_t freq;
         int freqperc;
 
-	for (i=0; i < ss->cpu.nrcpu; i++)
+	for (i=0; i <= ss->cpu.maxcpunr; i++)
 	{
+            if (ss->cpu.cpu[i].active)
+            {
                 cnt    = ss->cpu.cpu[i].freqcnt.cnt;
                 ticks  = ss->cpu.cpu[i].freqcnt.ticks;
                 maxfreq= ss->cpu.cpu[0].freqcnt.maxfreq;
@@ -381,8 +386,9 @@ print_cpu(char *hp, struct sstat *ss,
                 calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
 		printf("%s %u %d %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
-			hp, hertz, i,
+		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n"
+			hp, hertz,
+	        	ss->cpu.cpu[i].cpunr,
 	        	ss->cpu.cpu[i].stime,
         		ss->cpu.cpu[i].utime,
         		ss->cpu.cpu[i].ntime,
@@ -397,6 +403,7 @@ print_cpu(char *hp, struct sstat *ss,
         		ss->cpu.cpu[i].instr,
         		ss->cpu.cpu[i].cycle
 			);
+            }
 	}
 }
 

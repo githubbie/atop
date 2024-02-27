@@ -1273,8 +1273,10 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 	*/
 	if (ss->cpu.nrcpu > 1)
 	{
-		for (i=0; i < ss->cpu.nrcpu; i++)
+		for (i=0; i <= ss->cpu.maxcpunr; i++)
 		{
+                    if (ss->cpu.cpu[i].active)
+                    {
         		cputot = ss->cpu.cpu[i].stime + ss->cpu.cpu[i].utime +
                  	         ss->cpu.cpu[i].ntime + ss->cpu.cpu[i].itime +
                  	         ss->cpu.cpu[i].wtime + ss->cpu.cpu[i].Itime +
@@ -1310,6 +1312,7 @@ cpuline(struct sstat *ss, struct tstat *ts, struct tstat **ps, int nactproc,
 			postprint(badness);
 
 			nlines++;
+                    }
 		}
 	}
 

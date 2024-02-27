@@ -357,6 +357,7 @@ photosyst(struct sstat *si)
 				}
 
 				si->cpu.cpu[i].cpunr	= i;
+				si->cpu.cpu[i].active	= 1;
 				si->cpu.cpu[i].utime	= cnts[0];
 				si->cpu.cpu[i].ntime	= cnts[1];
 				si->cpu.cpu[i].stime	= cnts[2];
@@ -376,6 +377,8 @@ photosyst(struct sstat *si)
 				}
 
 				si->cpu.nrcpu++;
+				if (si->cpu.maxcpunr < i)
+                                        si->cpu.maxcpunr = i;
 				continue;
 			}
 
@@ -446,80 +449,83 @@ photosyst(struct sstat *si)
 
 	if (si->cpu.nrcpu <= SCALINGMAXCPU)
 	{
-            for (i = 0; i < si->cpu.nrcpu; ++i)
+            for (i = 0; i <= si->cpu.maxcpunr; ++i)
             {
-                long long f=0;
-
-                snprintf(fn, sizeof fn,
-                   "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
-                   i);
-
-                if ((fp=fopen(fn, "r")) != 0)
+                if (si->cpu.cpu[i].active) 
                 {
-                        long long hits=0;
-                        long long maxfreq=0;
-                        long long cnt=0;
-                        long long sum=0;
+                    long long f=0;
 
-                        while (fscanf(fp, "%lld %lld", &f, &cnt) == 2)
-                        {
-                                f	/= 1000;
-                                sum 	+= (f*cnt);
-                                hits	+= cnt;
+                    snprintf(fn, sizeof fn,
+                       "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",
+                       i);
 
-                                if (f > maxfreq)
-                        		maxfreq=f;
-                        	didone=1;
-                        }
+                    if ((fp=fopen(fn, "r")) != 0)
+                    {
+                            long long hits=0;
+                            long long maxfreq=0;
+                            long long cnt=0;
+                            long long sum=0;
 
-	                si->cpu.cpu[i].freqcnt.maxfreq	= maxfreq;
-	                si->cpu.cpu[i].freqcnt.cnt	= sum;
-	                si->cpu.cpu[i].freqcnt.ticks	= hits;
+                            while (fscanf(fp, "%lld %lld", &f, &cnt) == 2)
+                            {
+                                    f	/= 1000;
+                                    sum 	+= (f*cnt);
+                                    hits	+= cnt;
 
-                        fclose(fp);
-                }
-		else
-		{    // governor statistics not available
-                     snprintf(fn, sizeof fn, 
-                      "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
-		      i);
+                                    if (f > maxfreq)
+                            		maxfreq=f;
+                            	didone=1;
+                            }
 
-                        if ((fp=fopen(fn, "r")) != 0)
-                        {
-                                if (fscanf(fp, "%lld", &f) == 1)
-                                {
-  					// convert KHz to MHz
-	                                si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
-                                }
+    	                si->cpu.cpu[i].freqcnt.maxfreq	= maxfreq;
+    	                si->cpu.cpu[i].freqcnt.cnt	= sum;
+    	                si->cpu.cpu[i].freqcnt.ticks	= hits;
 
-                                fclose(fp);
-                        }
-                        else 
-                        {
-	                        si->cpu.cpu[i].freqcnt.maxfreq=0;
-                        }
+                            fclose(fp);
+                    }
+    		else
+    		{    // governor statistics not available
+                         snprintf(fn, sizeof fn, 
+                          "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",
+    		      i);
 
-                       snprintf(fn, sizeof fn,
-                       "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
-		       i);
-        
-                        if ((fp=fopen(fn, "r")) != 0)
-                        {
-                                if (fscanf(fp, "%lld", &f) == 1)
-                                {
-   					// convert KHz to MHz
-                                        si->cpu.cpu[i].freqcnt.cnt   = f/1000;
-                                        si->cpu.cpu[i].freqcnt.ticks = 0;
-                                        didone=1;
-                                }
+                            if ((fp=fopen(fn, "r")) != 0)
+                            {
+                                    if (fscanf(fp, "%lld", &f) == 1)
+                                    {
+      					// convert KHz to MHz
+    	                                si->cpu.cpu[i].freqcnt.maxfreq =f/1000; 
+                                    }
 
-                                fclose(fp);
-                        }
-                        else
-                        {
-                                si->cpu.cpu[i].freqcnt.cnt	= 0;
-                                si->cpu.cpu[i].freqcnt.ticks 	= 0;
-                        }
+                                    fclose(fp);
+                            }
+                            else 
+                            {
+    	                        si->cpu.cpu[i].freqcnt.maxfreq=0;
+                            }
+
+                           snprintf(fn, sizeof fn,
+                           "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq",
+    		       i);
+            
+                            if ((fp=fopen(fn, "r")) != 0)
+                            {
+                                    if (fscanf(fp, "%lld", &f) == 1)
+                                    {
+       					// convert KHz to MHz
+                                            si->cpu.cpu[i].freqcnt.cnt   = f/1000;
+                                            si->cpu.cpu[i].freqcnt.ticks = 0;
+                                            didone=1;
+                                    }
+
+                                    fclose(fp);
+                            }
+                            else
+                            {
+                                    si->cpu.cpu[i].freqcnt.cnt	= 0;
+                                    si->cpu.cpu[i].freqcnt.ticks 	= 0;
+                            }
+                    }
                 }
             } // for all CPUs
 	}
@@ -542,7 +548,7 @@ photosyst(struct sstat *si)
 
                                 if (memcmp(linebuf, "cpu MHz", 7) == EQ)
 				{
-                                        if (cpuno >= 0 && cpuno < si->cpu.nrcpu)
+                                        if (cpuno >= 0 && cpuno <= si->cpu.maxcpunr)
 					{
 						sscanf(linebuf,
 							"%*s %*s %*s %lld",
@@ -1164,7 +1170,8 @@ photosyst(struct sstat *si)
 
 			for (i=0; i < mask->size; i++)
 			{
-				if ( (mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 )
+				if (si->cpu.cpu[i].active && 
+                                    ((mask->maskp[i/bitsperlong] >> (i % bitsperlong)) & 1 ))
 				{
 					si->cpunuma.numa[j].nrcpu++;
 					si->cpunuma.numa[j].utime += si->cpu.cpu[i].utime;
@@ -2809,7 +2816,7 @@ getperfevents(struct cpustat *cs)
 		/*
 		** allocate space for per-cpu file descriptors
 		*/
-		cpualloced = cs->nrcpu;
+		cpualloced = cs->maxcpunr+1;
 		fdi        = malloc(sizeof(int) * cpualloced);
 		fdc        = malloc(sizeof(int) * cpualloced);
 
@@ -2825,8 +2832,13 @@ getperfevents(struct cpustat *cs)
 
 	 	regainrootprivs();
 
+#ifndef PERF_FLAG_FD_CLOEXEC
+#define PERF_FLAG_FD_CLOEXEC (0)
+#endif
 		for (i=0; i < cpualloced; i++)
 		{
+                    if (cs->cpu[i].active)
+                    {
 			pea.config = PERF_COUNT_HW_INSTRUCTIONS;
 
 			if ( (*(fdi+i) = perf_event_open(&pea, -1, i, -1,
@@ -2838,6 +2850,7 @@ getperfevents(struct cpustat *cs)
 			if ( (*(fdc+i) = perf_event_open(&pea, -1, i, -1,
 						PERF_FLAG_FD_CLOEXEC)) >= 0)
 				success++;
+                    }
 		}
 
 		if (! droprootprivs())
@@ -2876,7 +2889,7 @@ getperfevents(struct cpustat *cs)
 
         for (i=0; i < cpualloced; i++)
         {
-		if (*(fdi+i) != -1)
+		if (cs->cpu[i].active && (*(fdi+i) != -1))
 		{
                 	liResult = read(*(fdi+i), &(cs->cpu[i].instr), sizeof(count_t));
                         cs->all.instr += cs->cpu[i].instr;
@@ -2889,7 +2902,10 @@ getperfevents(struct cpustat *cs)
 				           __FILE__, __LINE__, errno);
 				fprintf(stderr, "%s", lcMessage);
 			}
+		}
 
+		if (cs->cpu[i].active && (*(fdc+i) != -1))
+		{
                 	liResult = read(*(fdc+i), &(cs->cpu[i].cycle), sizeof(count_t));
                         cs->all.cycle += cs->cpu[i].cycle;
 			if(liResult < 0)
