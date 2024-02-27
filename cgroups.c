@@ -674,7 +674,7 @@ gettotpressure(char *fname)
 
 	if ( (fp = fopen(fname, "r")) != NULL)
 	{
-		if ( fgets(linebuf, sizeof(linebuf), fp != NULL)	// skip 'some' line
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)	// skip 'some' line
 		{
 			// only handle second line: 'total' pressure
 			//
