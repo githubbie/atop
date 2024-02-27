@@ -386,7 +386,7 @@ print_cpu(char *hp, struct sstat *ss,
                 calc_freqscale(maxfreq, cnt, ticks, &freq, &freqperc);
 
 		printf("%s %u %d %lld %lld %lld "
-		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n"
+		       "%lld %lld %lld %lld %lld %lld %lld %d %lld %lld\n",
 			hp, hertz,
 	        	ss->cpu.cpu[i].cpunr,
 	        	ss->cpu.cpu[i].stime,
