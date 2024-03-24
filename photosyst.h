@@ -175,6 +175,7 @@ struct freqcnt {
 
 struct percpu {
 	int		cpunr;
+	char		active;	/* CPU active (boolean) 		*/
 	count_t		stime;	/* system  time in clock ticks		*/
 	count_t		utime;	/* user    time in clock ticks		*/
 	count_t		ntime;	/* nice    time in clock ticks		*/
@@ -192,6 +193,7 @@ struct percpu {
 
 struct	cpustat {
 	count_t	nrcpu;	/* number of cpu's 			*/
+	count_t	maxcpunr;	/* highest cpu number   	*/
 	count_t	devint;	/* number of device interrupts 		*/
 	count_t	csw;	/* number of context switches		*/
 	count_t	nprocs;	/* number of processes started          */

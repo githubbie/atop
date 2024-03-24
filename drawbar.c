@@ -526,7 +526,7 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 	static struct vertval	*vertvals;
 
 	count_t			alltics;
-	int 			i;
+	int 			i, j;
 	char			buf[16];
 
 	// check if the number of CPUs has been changed since
@@ -551,7 +551,7 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 
 		numlabs = numcpus > 1 ? numcpus + 1 : 1;
 
-		labellen = snprintf(buf, sizeof buf, "%d", numcpus);
+		labellen = snprintf(buf, sizeof buf, "%lld", sstat->cpu.maxcpunr);
 
 		vertvals = malloc(numlabs * sizeof(struct vertval));
 		ptrverify(vertvals, "Malloc failed for %d vertval structs\n", numlabs);
@@ -562,23 +562,30 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 		// create new X axis labels
 		//
 		if (numcpus == 1)
-			vertvals->barlab = "0";
+		{
+			snprintf(vertvals->barlab, labellen+1, "%lld", sstat->cpu.maxcpunr);
+		}
 		else
 		{
 			vertvals->barlab = "Avg      ";
 
-			for (i=0, p=labarea; i < numcpus; i++)
+			i=0;
+			for (j=0, p=labarea; j <= sstat->cpu.maxcpunr; j++)
 			{
+			    if (sstat->cpu.cpu[j].active) 
+			    {
 				(vertvals+i+1)->barlab = p;
 				snprintf(p, labellen+1, "%-*d", labellen,
-						sstat->cpu.cpu[i].cpunr);
+						sstat->cpu.cpu[j].cpunr);
 				p += labellen+1;
+				i++;
+			    }
 			}
 		}
 	}
 
-	// calculate overall busy percentage and
-	// fill first busy value (average)
+	// calculate overall busy percentage and fill
+	// first busy value (average or the only cpu)
 	//
 	alltics =	sstat->cpu.all.stime +
                         sstat->cpu.all.utime +
@@ -634,24 +641,32 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 	//
 	if (numcpus > 1)
 	{
-		// total ticks during last interval for CPU 0
-		//
-		alltics =	sstat->cpu.cpu[0].stime +
-				sstat->cpu.cpu[0].utime +
-				sstat->cpu.cpu[0].ntime +
-				sstat->cpu.cpu[0].itime +
-				sstat->cpu.cpu[0].wtime +
-				sstat->cpu.cpu[0].Itime +
-				sstat->cpu.cpu[0].Stime +
-				sstat->cpu.cpu[0].steal;
+		alltics = 0; 
 
 		// busy percentage per CPU
 		//
-		for (i=0; i < numcpus; i++)
+		i=0;
+		for (j=0; j <= sstat->cpu.maxcpunr; j++)
 		{
+		    if (sstat->cpu.cpu[j].active) 
+		    {
+			// total ticks during last interval for first
+			// active CPU
+			if (alltics == 0)
+			{
+				alltics = sstat->cpu.cpu[j].stime +
+					  sstat->cpu.cpu[j].utime +
+					  sstat->cpu.cpu[j].ntime +
+					  sstat->cpu.cpu[j].itime +
+					  sstat->cpu.cpu[j].wtime +
+					  sstat->cpu.cpu[j].Itime +
+					  sstat->cpu.cpu[j].Stime +
+					  sstat->cpu.cpu[j].steal;
+			}
+
 			(vertvals+i+1)->barval =
-				100 - (sstat->cpu.cpu[i].itime +
-				       sstat->cpu.cpu[i].wtime  ) *100/alltics;
+				100 - (sstat->cpu.cpu[j].itime +
+				       sstat->cpu.cpu[j].wtime  ) *100/alltics;
 
 			if ((vertvals+i+1)->barval < 0)
 				(vertvals+i+1)->barval = 0;
@@ -663,31 +678,31 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 				(vertvals+i+1)->category[0].ccol = COLORCPUSYS;
 				(vertvals+i+1)->category[0].clab = 'S';
 				(vertvals+i+1)->category[0].cval =
-					sstat->cpu.cpu[i].stime * 100 /
+					sstat->cpu.cpu[j].stime * 100 /
 								alltics;
 
 				(vertvals+i+1)->category[1].ccol = COLORCPUUSR;
 				(vertvals+i+1)->category[1].clab = 'U';
 				(vertvals+i+1)->category[1].cval =
-					(sstat->cpu.cpu[i].utime +
-				 	 sstat->cpu.cpu[i].ntime -
-				 	 sstat->cpu.cpu[i].guest) *100/alltics;
+					(sstat->cpu.cpu[j].utime +
+				 	 sstat->cpu.cpu[j].ntime -
+				 	 sstat->cpu.cpu[j].guest) *100/alltics;
 
 				(vertvals+i+1)->category[2].ccol = COLORCPUIDLE;
 				(vertvals+i+1)->category[2].clab = 'I';
 				(vertvals+i+1)->category[2].cval =
-					(sstat->cpu.cpu[i].Stime +
-					 sstat->cpu.cpu[i].Itime) *100/alltics;
+					(sstat->cpu.cpu[j].Stime +
+					 sstat->cpu.cpu[j].Itime) *100/alltics;
 
 				(vertvals+i+1)->category[3].ccol = COLORCPUSTEAL;
 				(vertvals+i+1)->category[3].clab = 's';
 				(vertvals+i+1)->category[3].cval =
-					sstat->cpu.cpu[i].steal *100/alltics;
+					sstat->cpu.cpu[j].steal *100/alltics;
 
 				(vertvals+i+1)->category[4].ccol = COLORCPUGUEST;
 				(vertvals+i+1)->category[4].clab = 'G';
 				(vertvals+i+1)->category[4].cval =
-					sstat->cpu.cpu[i].guest *100/alltics;
+					sstat->cpu.cpu[j].guest *100/alltics;
 
 				(vertvals+i+1)->numcat = 5;
 			}
@@ -695,6 +710,9 @@ do_cpubars(struct sstat *sstat, int nsecs, char initlabels, char mono)
 			{
 				(vertvals+i+1)->numcat = 0;
 			}
+
+			i++;
+		    }
 		}
 	}
 

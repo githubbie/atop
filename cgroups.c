@@ -376,7 +376,10 @@ walkcgroup(char *dirname, struct cgchainer *cparent, int parentseq,
 
 	closedir(dirp);
 
-	chdir("..");
+	// return to original directory
+	//
+	if ( chdir("..") == -1)
+		return -1;
 
 	ccp->cstat->gen.procsbelow = procsbelow;
 
@@ -671,15 +674,16 @@ gettotpressure(char *fname)
 
 	if ( (fp = fopen(fname, "r")) != NULL)
 	{
-		fgets(linebuf, sizeof(linebuf), fp);	// skip 'some' line
-
-		// only handle second line: 'total' pressure
-		//
-		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+		if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)	// skip 'some' line
 		{
-			sscanf(linebuf, psiformat,
-				&psitype, &a10, &a60, &a300, &totpressure);
-                }
+			// only handle second line: 'total' pressure
+			//
+			if ( fgets(linebuf, sizeof(linebuf), fp) != NULL)
+			{
+				sscanf(linebuf, psiformat,
+					&psitype, &a10, &a60, &a300, &totpressure);
+                	}
+		}
 
 		fclose(fp);
 	}

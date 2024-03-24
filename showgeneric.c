@@ -383,8 +383,8 @@ text_samp(time_t curtime, int nsecs,
 	*/
 	if (!sysnosort)
 	{
-		if (sstat->cpu.nrcpu > 1 && maxcpulines > 0)
-			qsort(sstat->cpu.cpu, sstat->cpu.nrcpu,
+		if (sstat->cpu.maxcpunr > 0 && maxcpulines > 0)
+			qsort(sstat->cpu.cpu, sstat->cpu.maxcpunr+1,
 	 	               sizeof sstat->cpu.cpu[0], cpucompar);
 
 		if (sstat->gpu.nrgpus > 1 && maxgpulines > 0)

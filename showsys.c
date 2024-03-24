@@ -613,14 +613,16 @@ sumscaling(struct sstat *sstat, count_t *maxfreq,
         count_t mycnt     = 0;
         count_t myticks   = 0;
 
-        int n=sstat->cpu.nrcpu;
         int i;
 
-        for (i=0; i < n; ++i)
+        for (i=0; i <= sstat->cpu.maxcpunr; ++i)
         {
+            if (sstat->cpu.cpu[i].active)
+            {
                 mymaxfreq+= sstat->cpu.cpu[i].freqcnt.maxfreq;
                 mycnt    += sstat->cpu.cpu[i].freqcnt.cnt;
                 myticks  += sstat->cpu.cpu[i].freqcnt.ticks;
+            }
         }
 
         *maxfreq= mymaxfreq;

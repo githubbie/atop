@@ -2639,15 +2639,17 @@ compcon(const void *a, const void *b)
 int
 cpucompar(const void *a, const void *b)
 {
+        register char    aactive = ((struct percpu *)a)->active;
+        register char    bactive = ((struct percpu *)b)->active;
         register count_t aidle = ((struct percpu *)a)->itime +
                                  ((struct percpu *)a)->wtime;
         register count_t bidle = ((struct percpu *)b)->itime +
                                  ((struct percpu *)b)->wtime;
 
-        if (aidle < bidle)
+	if ((aactive) && (!bactive)) || (aidle < bidle)
                 return -1;
 
-        if (aidle > bidle)
+	if ((!aactive) && (bactive)) || (aidle > bidle)
                 return  1;
 
 	return  0;
